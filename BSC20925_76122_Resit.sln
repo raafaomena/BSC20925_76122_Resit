@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# 
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BSC20925_76122_Resit.Web", "BSC20925_76122_Resit.Web\BSC20925_76122_Resit.Web.csproj", "{F4CCFA33-CA05-44A2-AEDD-E99B6555F84F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BSC20925_76122_Resit.Tests", "BSC20925_76122_Resit.Tests\BSC20925_76122_Resit.Tests.csproj", "{38D1A86D-FA70-441E-9E44-82111224B325}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F4CCFA33-CA05-44A2-AEDD-E99B6555F84F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4CCFA33-CA05-44A2-AEDD-E99B6555F84F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4CCFA33-CA05-44A2-AEDD-E99B6555F84F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4CCFA33-CA05-44A2-AEDD-E99B6555F84F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38D1A86D-FA70-441E-9E44-82111224B325}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38D1A86D-FA70-441E-9E44-82111224B325}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38D1A86D-FA70-441E-9E44-82111224B325}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38D1A86D-FA70-441E-9E44-82111224B325}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
