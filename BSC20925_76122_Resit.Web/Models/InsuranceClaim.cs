@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using BSC20925_76122_Resit.Web.Models.Enums;
 
 namespace BSC20925_76122_Resit.Web.Models;
@@ -50,6 +49,7 @@ public class InsuranceClaim
     [DataType(DataType.Date)]
     [Display(Name = "Incident Date")]
     [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
+    [CustomValidation(typeof(InsuranceClaim), nameof(ValidateIncidentDate))]
     public DateTime IncidentDate { get; set; }
 
     [Required(ErrorMessage = "Estimated amount is required")]
@@ -72,7 +72,8 @@ public class InsuranceClaim
     [Display(Name = "Created By")]
     public string? CreatedBy { get; set; }
 
-    // Custom validation for incident date
+    public string? UserId { get; set; }
+
     public static ValidationResult? ValidateIncidentDate(DateTime incidentDate, ValidationContext context)
     {
         var claim = (InsuranceClaim)context.ObjectInstance;
