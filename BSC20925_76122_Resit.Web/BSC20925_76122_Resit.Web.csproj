@@ -29,4 +29,9 @@
         </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include=".github\workfows\build.yml" />
+      <Content Include=".github\workfows\deploy.yml" />
+    </ItemGroup>
+
 </Project>
