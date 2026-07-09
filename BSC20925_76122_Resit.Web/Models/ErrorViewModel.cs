@@ -1,8 +1,9 @@
-namespace BSC20925_76122_Resit.Models;
-
-public class ErrorViewModel
+namespace BSC20925_76122_Resit.Web.Models
 {
-    public string? RequestId { get; set; }
-
-    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    public class ErrorViewModel
+    {
+        public string? RequestId { get; set; }
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+        public string? ErrorMessage { get; set; }
+    }
 }

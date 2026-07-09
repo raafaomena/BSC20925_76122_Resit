@@ -1,244 +1,277 @@
-using Microsoft.AspNetCore.Mvc;
 using BSC20925_76122_Resit.Web.Models;
-using BSC20925_76122_Resit.Web.Models.Enums;
 using BSC20925_76122_Resit.Web.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace BSC20925_76122_Resit.Web.Controllers;
-
-public class ClaimsController : Controller
+namespace BSC20925_76122_Resit.Web.Controllers
 {
-    private readonly IClaimService _claimService;
-    private readonly ILogger<ClaimsController> _logger;
-
-    public ClaimsController(IClaimService claimService, ILogger<ClaimsController> logger)
+    public class ClaimsController : Controller
     {
-        _claimService = claimService;
-        _logger = logger;
-    }
+        private readonly IClaimService _claimService;
+        private readonly ILogger<ClaimsController> _logger;
 
-    public async Task<IActionResult> Index(string? searchTerm, string? status, string? claimType)
-    {
-        try
+        public ClaimsController(IClaimService claimService, ILogger<ClaimsController> logger)
         {
-            var claims = await _claimService.GetFilteredClaimsAsync(searchTerm, status, claimType);
-            
-            ViewData["SelectedStatus"] = status;
-            ViewData["SelectedClaimType"] = claimType;
-            ViewData["SearchTerm"] = searchTerm;
-            
-            return View(claims);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in Index action");
-            return View("Error");
-        }
-    }
-
-    public async Task<IActionResult> Details(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
+            _claimService = claimService;
+            _logger = logger;
         }
 
-        try
+        public async Task<IActionResult> Index(string searchTerm, string status, string claimType)
         {
-            var claim = await _claimService.GetClaimByIdAsync(id.Value);
-            
-            if (claim == null)
+            try
             {
-                return NotFound();
-            }
+                var claims = await _claimService.GetFilteredClaimsAsync(searchTerm, status, claimType);
+                
+                ViewBag.SearchTerm = searchTerm;
+                ViewBag.Status = status;
+                ViewBag.ClaimType = claimType;
+                
+                ViewBag.StatusList = new SelectList(new[]
+                {
+                    new { Value = "", Text = "All Statuses" },
+                    new { Value = "Submitted", Text = "Submitted" },
+                    new { Value = "Under Review", Text = "Under Review" },
+                    new { Value = "Approved", Text = "Approved" },
+                    new { Value = "Rejected", Text = "Rejected" }
+                }, "Value", "Text", status);
+                
+                ViewBag.ClaimTypeList = new SelectList(new[]
+                {
+                    new { Value = "", Text = "All Types" },
+                    new { Value = "Motor", Text = "Motor" },
+                    new { Value = "Home", Text = "Home" },
+                    new { Value = "Travel", Text = "Travel" },
+                    new { Value = "Health", Text = "Health" }
+                }, "Value", "Text", claimType);
 
+                return View(claims);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Index action");
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while retrieving claims. Please try again." 
+                });
+            }
+        }
+
+        public async Task<IActionResult> Details(int id)
+        {
+            try
+            {
+                var claim = await _claimService.GetClaimByIdAsync(id);
+                return View(claim);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogWarning("Claim with ID {Id} not found", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "The requested claim was not found." 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Details action for ID {Id}", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while retrieving the claim details." 
+                });
+            }
+        }
+
+        public IActionResult Create()
+        {
+            var claim = new InsuranceClaim
+            {
+                ClaimDate = DateTime.Today,
+                IncidentDate = DateTime.Today.AddDays(-7),
+                ClaimStatus = "Submitted"
+            };
+
+            PopulateDropDownLists();
             return View(claim);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error in Details action for ID {id}");
-            return View("Error");
-        }
-    }
 
-    public IActionResult Create()
-    {
-        ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-        ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-        return View();
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("ClaimReference,CustomerName,CustomerEmail,PolicyNumber,ClaimType,ClaimStatus,ClaimDate,IncidentDate,EstimatedAmount,Description")] InsuranceClaim claim)
-    {
-        try
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(InsuranceClaim claim)
         {
-            if (await _claimService.ClaimReferenceExistsAsync(claim.ClaimReference))
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError("ClaimReference", "A claim with this reference already exists.");
+                try
+                {
+                    await _claimService.CreateClaimAsync(claim);
+                    TempData["SuccessMessage"] = "Claim created successfully!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error creating claim");
+                    ModelState.AddModelError("", "An error occurred while creating the claim.");
+                }
+            }
+
+            PopulateDropDownLists();
+            return View(claim);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            try
+            {
+                var claim = await _claimService.GetClaimByIdAsync(id);
+                PopulateDropDownLists();
+                return View(claim);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogWarning("Claim with ID {Id} not found for edit", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "The requested claim was not found." 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Edit action for ID {Id}", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while retrieving the claim." 
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, InsuranceClaim claim)
+        {
+            if (id != claim.Id)
+            {
+                return NotFound();
             }
 
             if (ModelState.IsValid)
             {
-                await _claimService.CreateClaimAsync(claim);
-                TempData["SuccessMessage"] = "Claim created successfully!";
-                return RedirectToAction(nameof(Index));
-            }
-
-            ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-            ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-            return View(claim);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in Create POST action");
-            ModelState.AddModelError("", "An error occurred while creating the claim.");
-            ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-            ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-            return View(claim);
-        }
-    }
-
-    public async Task<IActionResult> Edit(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        try
-        {
-            var claim = await _claimService.GetClaimByIdAsync(id.Value);
-            
-            if (claim == null)
-            {
-                return NotFound();
-            }
-
-            ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-            ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-            return View(claim);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error in Edit GET action for ID {id}");
-            return View("Error");
-        }
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,ClaimReference,CustomerName,CustomerEmail,PolicyNumber,ClaimType,ClaimStatus,ClaimDate,IncidentDate,EstimatedAmount,Description")] InsuranceClaim claim)
-    {
-        if (id != claim.Id)
-        {
-            return NotFound();
-        }
-
-        try
-        {
-            var existingClaim = await _claimService.GetClaimByIdAsync(id);
-            if (existingClaim != null && existingClaim.ClaimReference != claim.ClaimReference)
-            {
-                if (await _claimService.ClaimReferenceExistsAsync(claim.ClaimReference))
+                try
                 {
-                    ModelState.AddModelError("ClaimReference", "A claim with this reference already exists.");
+                    await _claimService.UpdateClaimAsync(claim);
+                    TempData["SuccessMessage"] = "Claim updated successfully!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (KeyNotFoundException)
+                {
+                    _logger.LogWarning("Claim with ID {Id} not found for update", id);
+                    return View("Error", new ErrorViewModel 
+                    { 
+                        ErrorMessage = "The requested claim was not found." 
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating claim with ID {Id}", id);
+                    ModelState.AddModelError("", "An error occurred while updating the claim.");
                 }
             }
 
-            if (ModelState.IsValid)
+            PopulateDropDownLists();
+            return View(claim);
+        }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
             {
-                var success = await _claimService.UpdateClaimAsync(claim);
-                
-                if (!success)
-                {
-                    return NotFound();
-                }
-                
-                TempData["SuccessMessage"] = "Claim updated successfully!";
+                var claim = await _claimService.GetClaimByIdAsync(id);
+                return View(claim);
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogWarning("Claim with ID {Id} not found for delete", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "The requested claim was not found." 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Delete action for ID {Id}", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while retrieving the claim." 
+                });
+            }
+        }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            try
+            {
+                await _claimService.DeleteClaimAsync(id);
+                TempData["SuccessMessage"] = "Claim deleted successfully!";
                 return RedirectToAction(nameof(Index));
             }
-
-            ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-            ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-            return View(claim);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error in Edit POST action for ID {id}");
-            ModelState.AddModelError("", "An error occurred while updating the claim.");
-            ViewBag.ClaimTypes = Enum.GetNames(typeof(ClaimType)).ToList();
-            ViewBag.ClaimStatuses = Enum.GetNames(typeof(ClaimStatus)).ToList();
-            return View(claim);
-        }
-    }
-
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        try
-        {
-            var claim = await _claimService.GetClaimByIdAsync(id.Value);
-            
-            if (claim == null)
+            catch (KeyNotFoundException)
             {
-                return NotFound();
+                _logger.LogWarning("Claim with ID {Id} not found for deletion", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "The requested claim was not found." 
+                });
             }
-
-            return View(claim);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error in Delete GET action for ID {id}");
-            return View("Error");
-        }
-    }
-
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
-    {
-        try
-        {
-            var success = await _claimService.DeleteClaimAsync(id);
-            
-            if (!success)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Error deleting claim with ID {Id}", id);
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while deleting the claim." 
+                });
             }
+        }
 
-            TempData["SuccessMessage"] = "Claim deleted successfully!";
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception ex)
+        public async Task<IActionResult> Dashboard()
         {
-            _logger.LogError(ex, $"Error in DeleteConfirmed action for ID {id}");
-            TempData["ErrorMessage"] = "An error occurred while deleting the claim.";
-            return RedirectToAction(nameof(Index));
-        }
-    }
+            try
+            {
+                var statusCounts = await _claimService.GetClaimStatusCountsAsync();
+                var totalClaims = await _claimService.GetTotalClaimsCountAsync();
+                var recentClaims = await _claimService.GetRecentClaimsAsync(5);
 
-    public async Task<IActionResult> Dashboard()
-    {
-        try
-        {
-            var statusCounts = await _claimService.GetClaimStatusCountsAsync();
-            var allClaims = await _claimService.GetAllClaimsAsync();
-            
-            ViewBag.StatusCounts = statusCounts;
-            ViewBag.TotalClaims = allClaims.Count();
-            ViewBag.TotalValue = allClaims.Sum(c => c.EstimatedAmount);
-            
-            return View();
+                ViewBag.StatusCounts = statusCounts;
+                ViewBag.TotalClaims = totalClaims;
+
+                return View(recentClaims);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Dashboard action");
+                return View("Error", new ErrorViewModel 
+                { 
+                    ErrorMessage = "An error occurred while loading the dashboard." 
+                });
+            }
         }
-        catch (Exception ex)
+
+        private void PopulateDropDownLists()
         {
-            _logger.LogError(ex, "Error in Dashboard action");
-            return View("Error");
+            ViewBag.ClaimTypeList = new SelectList(new[]
+            {
+                new { Value = "Motor", Text = "Motor" },
+                new { Value = "Home", Text = "Home" },
+                new { Value = "Travel", Text = "Travel" },
+                new { Value = "Health", Text = "Health" }
+            }, "Value", "Text");
+
+            ViewBag.StatusList = new SelectList(new[]
+            {
+                new { Value = "Submitted", Text = "Submitted" },
+                new { Value = "Under Review", Text = "Under Review" },
+                new { Value = "Approved", Text = "Approved" },
+                new { Value = "Rejected", Text = "Rejected" }
+            }, "Value", "Text");
         }
     }
 }

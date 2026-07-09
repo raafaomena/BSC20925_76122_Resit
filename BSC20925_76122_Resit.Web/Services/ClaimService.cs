@@ -1,197 +1,222 @@
-using Microsoft.EntityFrameworkCore;
 using BSC20925_76122_Resit.Web.Data;
 using BSC20925_76122_Resit.Web.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace BSC20925_76122_Resit.Web.Services;
-
-public class ClaimService : IClaimService
+namespace BSC20925_76122_Resit.Web.Services
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ILogger<ClaimService> _logger;
-
-    public ClaimService(ApplicationDbContext context, ILogger<ClaimService> logger)
+    public class ClaimService : IClaimService
     {
-        _context = context;
-        _logger = logger;
-    }
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<ClaimService> _logger;
 
-    public async Task<IEnumerable<InsuranceClaim>> GetAllClaimsAsync()
-    {
-        try
+        public ClaimService(ApplicationDbContext context, ILogger<ClaimService> logger)
         {
-            return await _context.InsuranceClaims
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            _context = context;
+            _logger = logger;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all claims");
-            throw;
-        }
-    }
 
-    public async Task<IEnumerable<InsuranceClaim>> GetFilteredClaimsAsync(string? searchTerm, string? status, string? claimType)
-    {
-        try
+        public async Task<IEnumerable<InsuranceClaim>> GetAllClaimsAsync()
         {
-            var query = _context.InsuranceClaims.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
+            try
             {
-                query = query.Where(c => 
-                    c.CustomerName.Contains(searchTerm) || 
-                    c.PolicyNumber.Contains(searchTerm));
+                return await _context.InsuranceClaims
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
             }
-
-            if (!string.IsNullOrWhiteSpace(status))
+            catch (Exception ex)
             {
-                query = query.Where(c => c.ClaimStatus.ToString() == status);
+                _logger.LogError(ex, "Error getting all claims");
+                throw;
             }
+        }
 
-            if (!string.IsNullOrWhiteSpace(claimType))
+        public async Task<IEnumerable<InsuranceClaim>> GetFilteredClaimsAsync(string searchTerm, string status, string claimType)
+        {
+            try
             {
-                query = query.Where(c => c.ClaimType.ToString() == claimType);
+                var query = _context.InsuranceClaims.AsQueryable();
+
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    query = query.Where(i => 
+                        i.CustomerName.Contains(searchTerm) || 
+                        i.PolicyNumber.Contains(searchTerm));
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(i => i.ClaimStatus == status);
+                }
+
+                if (!string.IsNullOrEmpty(claimType))
+                {
+                    query = query.Where(i => i.ClaimType == claimType);
+                }
+
+                return await query
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
             }
-
-            return await query
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving filtered claims");
-            throw;
-        }
-    }
-
-    public async Task<InsuranceClaim?> GetClaimByIdAsync(int id)
-    {
-        try
-        {
-            return await _context.InsuranceClaims.FindAsync(id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error retrieving claim with ID {id}");
-            throw;
-        }
-    }
-
-    public async Task<InsuranceClaim> CreateClaimAsync(InsuranceClaim claim)
-    {
-        try
-        {
-            claim.CreatedAt = DateTime.UtcNow;
-            claim.UpdatedAt = null;
-            
-            _context.InsuranceClaims.Add(claim);
-            await _context.SaveChangesAsync();
-            
-            _logger.LogInformation($"Claim {claim.ClaimReference} created successfully");
-            return claim;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error creating claim {claim.ClaimReference}");
-            throw;
-        }
-    }
-
-    public async Task<bool> UpdateClaimAsync(InsuranceClaim claim)
-    {
-        try
-        {
-            var existingClaim = await _context.InsuranceClaims.FindAsync(claim.Id);
-            
-            if (existingClaim == null)
+            catch (Exception ex)
             {
-                _logger.LogWarning($"Claim with ID {claim.Id} not found for update");
-                return false;
+                _logger.LogError(ex, "Error retrieving filtered claims");
+                throw;
             }
-
-            existingClaim.ClaimReference = claim.ClaimReference;
-            existingClaim.CustomerName = claim.CustomerName;
-            existingClaim.CustomerEmail = claim.CustomerEmail;
-            existingClaim.PolicyNumber = claim.PolicyNumber;
-            existingClaim.ClaimType = claim.ClaimType;
-            existingClaim.ClaimStatus = claim.ClaimStatus;
-            existingClaim.ClaimDate = claim.ClaimDate;
-            existingClaim.IncidentDate = claim.IncidentDate;
-            existingClaim.EstimatedAmount = claim.EstimatedAmount;
-            existingClaim.Description = claim.Description;
-            existingClaim.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            
-            _logger.LogInformation($"Claim {claim.ClaimReference} updated successfully");
-            return true;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error updating claim {claim.ClaimReference}");
-            throw;
-        }
-    }
 
-    public async Task<bool> DeleteClaimAsync(int id)
-    {
-        try
+        public async Task<InsuranceClaim> GetClaimByIdAsync(int id)
         {
-            var claim = await _context.InsuranceClaims.FindAsync(id);
-            
-            if (claim == null)
+            try
             {
-                _logger.LogWarning($"Claim with ID {id} not found for deletion");
-                return false;
+                var claim = await _context.InsuranceClaims.FindAsync(id);
+                if (claim == null)
+                {
+                    _logger.LogWarning("Claim with ID {Id} not found", id);
+                    throw new KeyNotFoundException($"Claim with ID {id} not found");
+                }
+                return claim;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting claim with ID {Id}", id);
+                throw;
+            }
+        }
 
-            _context.InsuranceClaims.Remove(claim);
-            await _context.SaveChangesAsync();
-            
-            _logger.LogInformation($"Claim {claim.ClaimReference} deleted successfully");
-            return true;
-        }
-        catch (Exception ex)
+        public async Task<InsuranceClaim> CreateClaimAsync(InsuranceClaim claim)
         {
-            _logger.LogError(ex, $"Error deleting claim with ID {id}");
-            throw;
-        }
-    }
+            try
+            {
+                claim.CreatedAt = DateTime.UtcNow;
+                claim.CreatedBy = "System";
+                claim.UpdatedAt = DateTime.UtcNow;
 
-    public async Task<bool> ClaimReferenceExistsAsync(string claimReference)
-    {
-        try
-        {
-            return await _context.InsuranceClaims
-                .AnyAsync(c => c.ClaimReference == claimReference);
+                _context.InsuranceClaims.Add(claim);
+                await _context.SaveChangesAsync();
+                return claim;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating claim");
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error checking claim reference {claimReference}");
-            throw;
-        }
-    }
 
-    public async Task<Dictionary<string, int>> GetClaimStatusCountsAsync()
-    {
-        try
+        public async Task<InsuranceClaim> UpdateClaimAsync(InsuranceClaim claim)
         {
-            var counts = await _context.InsuranceClaims
-                .GroupBy(c => c.ClaimStatus.ToString())
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(g => g.Status, g => g.Count);
-            
-            return counts;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting claim status counts");
-            throw;
-        }
-    }
+            try
+            {
+                var existingClaim = await _context.InsuranceClaims.FindAsync(claim.Id);
+                if (existingClaim == null)
+                {
+                    _logger.LogWarning("Claim with ID {Id} not found for update", claim.Id);
+                    throw new KeyNotFoundException($"Claim with ID {claim.Id} not found");
+                }
 
-    public bool ClaimExists(int id)
-    {
-        return _context.InsuranceClaims.Any(e => e.Id == id);
+                existingClaim.ClaimReference = claim.ClaimReference;
+                existingClaim.CustomerName = claim.CustomerName;
+                existingClaim.CustomerEmail = claim.CustomerEmail;
+                existingClaim.PolicyNumber = claim.PolicyNumber;
+                existingClaim.ClaimType = claim.ClaimType;
+                existingClaim.ClaimDate = claim.ClaimDate;
+                existingClaim.IncidentDate = claim.IncidentDate;
+                existingClaim.EstimatedAmount = claim.EstimatedAmount;
+                existingClaim.Description = claim.Description;
+                existingClaim.ClaimStatus = claim.ClaimStatus;
+                existingClaim.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return existingClaim;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating claim with ID {Id}", claim.Id);
+                throw;
+            }
+        }
+
+        public async Task DeleteClaimAsync(int id)
+        {
+            try
+            {
+                var claim = await _context.InsuranceClaims.FindAsync(id);
+                if (claim == null)
+                {
+                    _logger.LogWarning("Claim with ID {Id} not found for deletion", id);
+                    throw new KeyNotFoundException($"Claim with ID {id} not found");
+                }
+
+                _context.InsuranceClaims.Remove(claim);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting claim with ID {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<Dictionary<string, int>> GetClaimStatusCountsAsync()
+        {
+            try
+            {
+                var claims = await _context.InsuranceClaims.ToListAsync();
+                var statusCounts = claims
+                    .GroupBy(i => i.ClaimStatus)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                return statusCounts;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting claim status counts");
+                throw;
+            }
+        }
+
+        public async Task<int> GetTotalClaimsCountAsync()
+        {
+            try
+            {
+                return await _context.InsuranceClaims.CountAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting total claims count");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<InsuranceClaim>> GetRecentClaimsAsync(int count)
+        {
+            try
+            {
+                return await _context.InsuranceClaims
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Take(count)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting recent claims");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<InsuranceClaim>> GetClaimsByStatusAsync(string status)
+        {
+            try
+            {
+                return await _context.InsuranceClaims
+                    .Where(c => c.ClaimStatus == status)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting claims by status {Status}", status);
+                throw;
+            }
+        }
     }
 }

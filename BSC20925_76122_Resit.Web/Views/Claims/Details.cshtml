@@ -1,0 +1,61 @@
+@model BSC20925_76122_Resit.Web.Models.InsuranceClaim
+@{
+    ViewData["Title"] = "Claim Details - " + Model.ClaimReference;
+}
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">@Model.ClaimReference</h4>
+                <span class="claim-status-badge claim-status-@Model.ClaimStatus.Replace(" ", "")">
+                    @Model.ClaimStatus
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Customer Name</dt>
+                    <dd class="col-sm-8">@Model.CustomerName</dd>
+                    
+                    <dt class="col-sm-4">Customer Email</dt>
+                    <dd class="col-sm-8"><a href="mailto:@Model.CustomerEmail">@Model.CustomerEmail</a></dd>
+                    
+                    <dt class="col-sm-4">Policy Number</dt>
+                    <dd class="col-sm-8">@Model.PolicyNumber</dd>
+                    
+                    <dt class="col-sm-4">Claim Type</dt>
+                    <dd class="col-sm-8">@Model.ClaimType</dd>
+                    
+                    <dt class="col-sm-4">Claim Date</dt>
+                    <dd class="col-sm-8">@Model.ClaimDate.ToString("dd/MM/yyyy")</dd>
+                    
+                    <dt class="col-sm-4">Incident Date</dt>
+                    <dd class="col-sm-8">@Model.IncidentDate.ToString("dd/MM/yyyy")</dd>
+                    
+                    <dt class="col-sm-4">Estimated Amount</dt>
+                    <dd class="col-sm-8"><strong>@Model.EstimatedAmount.ToString("C")</strong></dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+                    
+                    <dt class="col-sm-4">Created At</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                    
+                    <dt class="col-sm-4">Last Updated</dt>
+                    <dd class="col-sm-8">@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+            </div>
+            <div class="card-footer">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Delete
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

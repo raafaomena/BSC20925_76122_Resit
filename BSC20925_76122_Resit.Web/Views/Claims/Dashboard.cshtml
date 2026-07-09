@@ -1,0 +1,99 @@
+@model IEnumerable<BSC20925_76122_Resit.Web.Models.InsuranceClaim>
+@{
+    ViewData["Title"] = "Dashboard";
+    var statusCounts = ViewBag.StatusCounts as Dictionary<string, int>;
+    var totalClaims = ViewBag.TotalClaims as int?;
+    var colors = new Dictionary<string, string>
+    {
+        { "Submitted", "info" },
+        { "Under Review", "warning" },
+        { "Approved", "success" },
+        { "Rejected", "danger" }
+    };
+}
+
+<h1 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card dashboard-card bg-primary text-white">
+            <div class="card-body">
+                <div class="card-title">Total Claims</div>
+                <div class="card-value">@totalClaims</div>
+            </div>
+        </div>
+    </div>
+    
+    @if (statusCounts != null)
+    {
+        @foreach (var status in statusCounts)
+        {
+            var color = colors.ContainsKey(status.Key) ? colors[status.Key] : "secondary";
+            <div class="col-md-3">
+                <div class="card dashboard-card text-white bg-@color">
+                    <div class="card-body">
+                        <div class="card-title">@status.Key</div>
+                        <div class="card-value">@status.Value</div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Claims</h5>
+            </div>
+            <div class="card-body">
+                @if (!Model.Any())
+                {
+                    <p class="text-muted text-center my-3">No recent claims.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Customer</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var claim in Model)
+                                {
+                                    <tr>
+                                        <td>@claim.ClaimReference</td>
+                                        <td>@claim.CustomerName</td>
+                                        <td>@claim.ClaimType</td>
+                                        <td>@claim.EstimatedAmount.ToString("C")</td>
+                                        <td>
+                                            <span class="claim-status-badge claim-status-@claim.ClaimStatus.Replace(" ", "")">
+                                                @claim.ClaimStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="card-footer text-end">
+                <a asp-action="Index" class="btn btn-primary btn-sm">View All Claims</a>
+            </div>
+        </div>
+    </div>
+</div>

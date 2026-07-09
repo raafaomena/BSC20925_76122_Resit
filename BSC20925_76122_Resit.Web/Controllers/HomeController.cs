@@ -1,31 +1,18 @@
-using System.Diagnostics;
+using BSC20925_76122_Resit.Web.Models;
 using Microsoft.AspNetCore.Mvc;
-using BSC20925_76122_Resit.Models;
 
-namespace BSC20925_76122_Resit.Controllers;
-
-public class HomeController : Controller
+namespace BSC20925_76122_Resit.Web.Controllers
 {
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    public class HomeController : Controller
     {
-        _logger = logger;
-    }
+        public IActionResult Index()
+        {
+            return RedirectToAction("Dashboard", "Claims");
+        }
 
-    public IActionResult Index()
-    {
-        return View();
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
     }
 }

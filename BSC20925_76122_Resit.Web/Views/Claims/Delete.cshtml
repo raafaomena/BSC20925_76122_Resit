@@ -1,0 +1,54 @@
+@model BSC20925_76122_Resit.Web.Models.InsuranceClaim
+@{
+    ViewData["Title"] = "Delete Claim - " + Model.ClaimReference;
+}
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Delete Claim</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i>
+                    Are you sure you want to delete this claim? This action cannot be undone.
+                </div>
+                
+                <dl class="row">
+                    <dt class="col-sm-4">Reference</dt>
+                    <dd class="col-sm-8">@Model.ClaimReference</dd>
+                    
+                    <dt class="col-sm-4">Customer</dt>
+                    <dd class="col-sm-8">@Model.CustomerName</dd>
+                    
+                    <dt class="col-sm-4">Policy Number</dt>
+                    <dd class="col-sm-8">@Model.PolicyNumber</dd>
+                    
+                    <dt class="col-sm-4">Claim Type</dt>
+                    <dd class="col-sm-8">@Model.ClaimType</dd>
+                    
+                    <dt class="col-sm-4">Amount</dt>
+                    <dd class="col-sm-8">@Model.EstimatedAmount.ToString("C")</dd>
+                    
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="claim-status-badge claim-status-@Model.ClaimStatus.Replace(" ", "")">
+                            @Model.ClaimStatus
+                        </span>
+                    </dd>
+                </dl>
+                
+                <form asp-action="Delete">
+                    <input type="hidden" asp-for="Id" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirm Delete
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
