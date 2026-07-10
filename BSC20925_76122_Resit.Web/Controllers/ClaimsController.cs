@@ -16,15 +16,53 @@ namespace BSC20925_76122_Resit.Web.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index(string searchTerm, string status, string claimType)
+        public IActionResult SetRole(string role)
+        {
+            if (role == "Manager" || role == "Student")
+            {
+                HttpContext.Session.SetString("UserRole", role);
+                TempData["SuccessMessage"] = $"Switched to {role} mode";
+            }
+            return RedirectToAction(nameof(Dashboard));
+        }
+
+        private string GetCurrentRole()
+        {
+            return HttpContext.Session.GetString("UserRole") ?? "Student";
+        }
+
+        public async Task<IActionResult> Index(string searchTerm, string status, string claimType, int page = 1, int pageSize = 5, string sortBy = "ClaimDate", string sortOrder = "desc")
         {
             try
             {
-                var claims = await _claimService.GetFilteredClaimsAsync(searchTerm, status, claimType);
+                var currentRole = GetCurrentRole();
+                var allClaims = await _claimService.GetFilteredClaimsAsync(searchTerm, status, claimType);
+                var totalItems = allClaims.Count();
+                
+                if (sortBy == "ClaimDate")
+                {
+                    allClaims = sortOrder == "asc" ? allClaims.OrderBy(c => c.ClaimDate) : allClaims.OrderByDescending(c => c.ClaimDate);
+                }
+                else if (sortBy == "EstimatedAmount")
+                {
+                    allClaims = sortOrder == "asc" ? allClaims.OrderBy(c => c.EstimatedAmount) : allClaims.OrderByDescending(c => c.EstimatedAmount);
+                }
+                else
+                {
+                    allClaims = allClaims.OrderByDescending(c => c.CreatedAt);
+                }
+                
+                var claims = allClaims.Skip((page - 1) * pageSize).Take(pageSize);
                 
                 ViewBag.SearchTerm = searchTerm;
                 ViewBag.Status = status;
                 ViewBag.ClaimType = claimType;
+                ViewBag.CurrentPage = page;
+                ViewBag.TotalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                ViewBag.SortBy = sortBy;
+                ViewBag.SortOrder = sortOrder;
+                ViewBag.PageSize = pageSize;
+                ViewBag.CurrentRole = currentRole;
                 
                 ViewBag.StatusList = new SelectList(new[]
                 {
@@ -58,6 +96,12 @@ namespace BSC20925_76122_Resit.Web.Controllers
 
         public async Task<IActionResult> Details(int id)
         {
+            var currentRole = GetCurrentRole();
+            if (currentRole != "Manager")
+            {
+                return View("AccessDenied");
+            }
+
             try
             {
                 var claim = await _claimService.GetClaimByIdAsync(id);
@@ -102,6 +146,7 @@ namespace BSC20925_76122_Resit.Web.Controllers
             {
                 try
                 {
+                    claim.CreatedBy = User.Identity?.Name ?? "System";
                     await _claimService.CreateClaimAsync(claim);
                     TempData["SuccessMessage"] = "Claim created successfully!";
                     return RedirectToAction(nameof(Index));
@@ -119,6 +164,12 @@ namespace BSC20925_76122_Resit.Web.Controllers
 
         public async Task<IActionResult> Edit(int id)
         {
+            var currentRole = GetCurrentRole();
+            if (currentRole != "Manager")
+            {
+                return View("AccessDenied");
+            }
+
             try
             {
                 var claim = await _claimService.GetClaimByIdAsync(id);
@@ -147,6 +198,12 @@ namespace BSC20925_76122_Resit.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, InsuranceClaim claim)
         {
+            var currentRole = GetCurrentRole();
+            if (currentRole != "Manager")
+            {
+                return View("AccessDenied");
+            }
+
             if (id != claim.Id)
             {
                 return NotFound();
@@ -181,6 +238,12 @@ namespace BSC20925_76122_Resit.Web.Controllers
 
         public async Task<IActionResult> Delete(int id)
         {
+            var currentRole = GetCurrentRole();
+            if (currentRole != "Manager")
+            {
+                return View("AccessDenied");
+            }
+
             try
             {
                 var claim = await _claimService.GetClaimByIdAsync(id);
@@ -208,6 +271,12 @@ namespace BSC20925_76122_Resit.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var currentRole = GetCurrentRole();
+            if (currentRole != "Manager")
+            {
+                return View("AccessDenied");
+            }
+
             try
             {
                 await _claimService.DeleteClaimAsync(id);
@@ -236,12 +305,14 @@ namespace BSC20925_76122_Resit.Web.Controllers
         {
             try
             {
+                var currentRole = GetCurrentRole();
                 var statusCounts = await _claimService.GetClaimStatusCountsAsync();
                 var totalClaims = await _claimService.GetTotalClaimsCountAsync();
                 var recentClaims = await _claimService.GetRecentClaimsAsync(5);
 
                 ViewBag.StatusCounts = statusCounts;
                 ViewBag.TotalClaims = totalClaims;
+                ViewBag.CurrentRole = currentRole;
 
                 return View(recentClaims);
             }
@@ -253,6 +324,11 @@ namespace BSC20925_76122_Resit.Web.Controllers
                     ErrorMessage = "An error occurred while loading the dashboard." 
                 });
             }
+        }
+
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
 
         private void PopulateDropDownLists()

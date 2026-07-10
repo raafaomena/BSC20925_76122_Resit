@@ -1,13 +1,19 @@
 @model IEnumerable<BSC20925_76122_Resit.Web.Models.InsuranceClaim>
 @{
     ViewData["Title"] = "Claims";
+    var currentRole = ViewBag.CurrentRole as string ?? "Student";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-list-ul"></i> Claims</h1>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Claim
-    </a>
+    <div>
+        <span class="badge @(currentRole == "Manager" ? "bg-danger" : "bg-primary") me-2" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+            <i class="bi bi-shield-check"></i> @currentRole
+        </span>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Claim
+        </a>
+    </div>
 </div>
 
 <div class="search-filters">
@@ -32,6 +38,21 @@
             </button>
         </div>
     </form>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <small class="text-muted">Sort by:</small>
+        <a asp-route-sortBy="ClaimDate" asp-route-sortOrder="@(ViewBag.SortBy == "ClaimDate" && ViewBag.SortOrder == "asc" ? "desc" : "asc")" class="btn btn-sm btn-outline-secondary">
+            Date <i class="bi bi-arrow-@(ViewBag.SortBy == "ClaimDate" && ViewBag.SortOrder == "asc" ? "up" : "down")"></i>
+        </a>
+        <a asp-route-sortBy="EstimatedAmount" asp-route-sortOrder="@(ViewBag.SortBy == "EstimatedAmount" && ViewBag.SortOrder == "asc" ? "desc" : "asc")" class="btn btn-sm btn-outline-secondary">
+            Amount <i class="bi bi-arrow-@(ViewBag.SortBy == "EstimatedAmount" && ViewBag.SortOrder == "asc" ? "up" : "down")"></i>
+        </a>
+    </div>
+    <div class="col-md-6 text-end">
+        <small class="text-muted">Page @ViewBag.CurrentPage of @ViewBag.TotalPages</small>
+    </div>
 </div>
 
 @if (!Model.Any())
@@ -74,19 +95,58 @@ else
                             </span>
                         </td>
                         <td>
-                            <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-sm btn-info" title="Details">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a asp-action="Edit" asp-route-id="@claim.Id" class="btn btn-sm btn-warning" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a asp-action="Delete" asp-route-id="@claim.Id" class="btn btn-sm btn-danger" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            @if (currentRole == "Manager")
+                            {
+                                <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-sm btn-info" title="Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@claim.Id" class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@claim.Id" class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Read Only</span>
+                            }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
+}
+
+@if (ViewBag.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination justify-content-center">
+            @if (ViewBag.CurrentPage > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" asp-route-page="@(ViewBag.CurrentPage - 1)" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-status="@ViewBag.Status" asp-route-claimType="@ViewBag.ClaimType" asp-route-sortBy="@ViewBag.SortBy" asp-route-sortOrder="@ViewBag.SortOrder">
+                        Previous
+                    </a>
+                </li>
+            }
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-route-page="@i" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-status="@ViewBag.Status" asp-route-claimType="@ViewBag.ClaimType" asp-route-sortBy="@ViewBag.SortBy" asp-route-sortOrder="@ViewBag.SortOrder">
+                        @i
+                    </a>
+                </li>
+            }
+            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+            {
+                <li class="page-item">
+                    <a class="page-link" asp-route-page="@(ViewBag.CurrentPage + 1)" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-status="@ViewBag.Status" asp-route-claimType="@ViewBag.ClaimType" asp-route-sortBy="@ViewBag.SortBy" asp-route-sortOrder="@ViewBag.SortOrder">
+                        Next
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
 }
